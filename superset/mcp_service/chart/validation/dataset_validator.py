@@ -331,42 +331,6 @@ class DatasetValidator:
         return column_name
 
     @staticmethod
-    def _normalize_xy_config(
-        config_dict: Dict[str, Any], dataset_context: DatasetContext
-    ) -> None:
-        """Normalize column names in an XY chart config dict in place."""
-        # Normalize x-axis column
-        if "x" in config_dict and config_dict["x"]:
-            config_dict["x"]["name"] = DatasetValidator._get_canonical_column_name(
-                config_dict["x"]["name"], dataset_context
-            )
-
-        # Normalize y-axis columns
-        if "y" in config_dict and config_dict["y"]:
-            for y_col in config_dict["y"]:
-                y_col["name"] = DatasetValidator._get_canonical_column_name(
-                    y_col["name"], dataset_context
-                )
-
-        # Normalize group_by columns
-        if "group_by" in config_dict and config_dict["group_by"]:
-            for gb_col in config_dict["group_by"]:
-                gb_col["name"] = DatasetValidator._get_canonical_column_name(
-                    gb_col["name"], dataset_context
-                )
-
-    @staticmethod
-    def _normalize_table_config(
-        config_dict: Dict[str, Any], dataset_context: DatasetContext
-    ) -> None:
-        """Normalize column names in a table chart config dict in place."""
-        if "columns" in config_dict and config_dict["columns"]:
-            for col in config_dict["columns"]:
-                col["name"] = DatasetValidator._get_canonical_column_name(
-                    col["name"], dataset_context
-                )
-
-    @staticmethod
     def _normalize_filters(
         config_dict: Dict[str, Any], dataset_context: DatasetContext
     ) -> None:
