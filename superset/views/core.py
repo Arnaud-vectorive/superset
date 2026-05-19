@@ -421,16 +421,21 @@ class Superset(BaseSupersetView):
                 )
                 form_data_key = CreateFormDataCommand(parameters).run()
 
-        # Use `url_for` so subdirectory deployments inherit SCRIPT_NAME. The
-        # legacy `request.url.replace("/superset/explore", "/explore")` would
-        # strip the application-root segment and redirect outside the subdir.
-        query = parse.parse_qs(request.query_string.decode())
+        # Use `url_for` so subdirectory deployments inherit SCRIPT_NAME, and
+        # pass all query params through it (instead of concatenating an encoded
+        # query string) so the redirect target is unambiguously an internal
+        # route: the host/path come from `url_for`, only the query bears user
+        # input. The legacy `request.url.replace("/superset/explore", "/explore")`
+        # would strip the application-root segment and redirect outside the
+        # subdir.
+        params: dict[str, Any] = {
+            k: v[0] if len(v) == 1 else v
+            for k, v in parse.parse_qs(request.query_string.decode()).items()
+        }
         if form_data_key:
-            query.pop("form_data", None)
-            query["form_data_key"] = [form_data_key]
-        encoded_query = parse.urlencode(query, doseq=True)
-        path = url_for("ExploreView.root")
-        return f"{path}?{encoded_query}" if encoded_query else path
+            params.pop("form_data", None)
+            params["form_data_key"] = form_data_key
+        return url_for("ExploreView.root", **params)
 
     @has_access
     @event_logger.log_this
