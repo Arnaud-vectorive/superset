@@ -198,6 +198,9 @@ const RawTableView = ({
     [scrollTopOnPagination, handleScrollToTop, gotoPage],
   );
 
+  const pageSize = initialPageSize ?? DEFAULT_PAGE_SIZE;
+  const pageCount = Math.ceil(data.length / pageSize);
+
   const paginationProps = useMemo(() => {
     if (!withPagination) {
       return {
@@ -211,7 +214,7 @@ const RawTableView = ({
     if (serverPagination) {
       return {
         pageIndex,
-        pageSize: initialPageSize ?? DEFAULT_PAGE_SIZE,
+        pageSize,
         totalCount,
         onPageChange: handlePageChange,
       };
@@ -219,7 +222,7 @@ const RawTableView = ({
 
     return {
       pageIndex,
-      pageSize: initialPageSize ?? DEFAULT_PAGE_SIZE,
+      pageSize,
       totalCount: data.length,
       onPageChange: handlePageChange,
     };
@@ -227,7 +230,7 @@ const RawTableView = ({
     withPagination,
     serverPagination,
     pageIndex,
-    initialPageSize,
+    pageSize,
     totalCount,
     data.length,
     handlePageChange,
@@ -251,9 +254,7 @@ const RawTableView = ({
   }, [initialState.sortBy, onServerPagination, serverPagination, sortBy]);
 
   // Reset to first page when current page exceeds available pages
-  // (e.g., when filtering reduces the data below the current page)
-  const pageSize = initialPageSize ?? DEFAULT_PAGE_SIZE;
-  const pageCount = Math.ceil(data.length / pageSize);
+  // (e.g., when filtering reduces the data below the current page).
   useEffect(() => {
     if (
       withPagination &&

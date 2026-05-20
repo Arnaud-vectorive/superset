@@ -36,9 +36,12 @@ const mockData: Record<string, unknown>[] = Array.from(
 );
 
 const defaultProps = {
-  // Note: The SingleQueryResultPaneProp type expects Record<string, any>[][]
-  // but useFilteredTableData and useTableColumns actually work with Record<string, any>[]
-  // This type mismatch exists in the codebase - cast through unknown to satisfy TypeScript
+  // Note: SingleQueryResultPaneProp.data is typed as Record<string, any>[][]
+  // (chunked rows), but useFilteredTableData and useTableColumns actually
+  // work with the flat Record<string, any>[] shape that the consumers below
+  // pass in. The double-cast through unknown is the workaround until the
+  // type is reconciled with how the hooks actually consume the data.
+  // TODO: fix SingleQueryResultPaneProp.data type to match the flat shape.
   data: mockData as unknown as Record<string, unknown>[][],
   colnames: ['id', 'name', 'category'],
   coltypes: [
@@ -75,14 +78,15 @@ test('SingleQueryResultPane renders table and filters data', async () => {
 });
 
 test('SingleQueryResultPane renders TableView correctly', () => {
-  const { container } = render(<SingleQueryResultPane {...defaultProps} />, {
+  render(<SingleQueryResultPane {...defaultProps} />, {
     useTheme: true,
     useRedux: true,
   });
 
-  // Verify TableView is rendered
-  const tableView = container.querySelector('.table-condensed');
-  expect(tableView).toBeInTheDocument();
+  // Verify TableView is rendered. Use the data-test attribute on
+  // TableCollection rather than the .table-condensed antd className,
+  // which is internal and may change.
+  expect(screen.getByTestId('listview-table')).toBeInTheDocument();
 });
 
 test('SingleQueryResultPane resets pagination when filter reduces data below current page', async () => {
