@@ -638,6 +638,7 @@ DATABASE_ALL_COLUMNS: list[str] = []
 # CSS Template configuration
 CSS_TEMPLATE_DEFAULT_COLUMNS = [
     "id",
+    "uuid",
     "template_name",
 ]
 CSS_TEMPLATE_SORTABLE_COLUMNS = [
