@@ -48,8 +48,9 @@ USER_DIRECTORY_FIELDS = frozenset(
 # created_by_me / owned_by_me boolean flags (see mcp_core._prepend_self_lookup_filters).
 # These columns are never exposed to LLM callers; they are excluded from the
 # filters_applied response field to avoid leaking internal implementation details.
+# "owners.id" is the report-schedule variant of the owner filter column.
 SELF_REFERENCING_FILTER_COLUMNS = frozenset(
-    {"created_by_fk", "owner", "created_by_fk_or_owner"}
+    {"created_by_fk", "owner", "owners.id", "created_by_fk_or_owner"}
 )
 
 DATA_MODEL_METADATA_ACCESS_ATTR = "_requires_data_model_metadata_access"
