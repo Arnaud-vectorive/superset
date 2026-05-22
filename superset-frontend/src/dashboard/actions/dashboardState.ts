@@ -265,6 +265,17 @@ export function setEditMode(editMode: boolean): SetEditModeAction {
   return { type: SET_EDIT_MODE, editMode };
 }
 
+export const SET_IS_EXPORTING = 'SET_IS_EXPORTING';
+
+interface SetIsExportingAction {
+  type: typeof SET_IS_EXPORTING;
+  isExporting: boolean;
+}
+
+export function setIsExporting(isExporting: boolean): SetIsExportingAction {
+  return { type: SET_IS_EXPORTING, isExporting };
+}
+
 export const ON_CHANGE = 'ON_CHANGE';
 
 interface OnChangeAction {

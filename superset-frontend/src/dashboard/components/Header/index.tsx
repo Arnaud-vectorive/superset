@@ -26,7 +26,7 @@ import {
 import { styled, css, SupersetTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import { Global } from '@emotion/react';
-import { shallowEqual, useDispatch, useSelector } from 'react-redux';
+import { shallowEqual, useDispatch, useSelector, useStore } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import { LOG_ACTIONS_TOGGLE_EDIT_DASHBOARD } from 'src/logger/LogUtils';
 import { Icons } from '@superset-ui/core/components/Icons';
@@ -36,8 +36,10 @@ import {
   DeleteModal,
   UnsavedChangesModal,
 } from '@superset-ui/core/components';
+import { Loading } from '@superset-ui/core/components/Loading';
 import { findPermission } from 'src/utils/findPermission';
 import { safeStringify } from 'src/utils/safeStringify';
+import { exportDashboardBundle } from 'src/utils/exportDashboardBundle';
 import Role from 'src/types/Role';
 import Owner from 'src/types/Owner';
 import { DashboardLayout, RootState } from 'src/dashboard/types';
@@ -85,6 +87,7 @@ import {
   saveFaveStar,
   savePublished,
   setEditMode,
+  setIsExporting,
   setMaxUndoHistoryExceeded,
   setRefreshFrequency,
   setUnsavedChanges,
@@ -138,6 +141,7 @@ type DashboardStateWithExtras = RootState['dashboardState'] & {
   shouldPersistRefreshFrequency?: boolean;
   colorNamespace?: string;
   isStarred?: boolean;
+  isExporting?: boolean;
   maxUndoHistoryExceeded?: boolean;
 };
 
@@ -157,6 +161,33 @@ const extensionsRegistry = getExtensionsRegistry();
 
 const headerContainerStyle = (theme: SupersetTheme) => css`
   border-bottom: 1px solid ${theme.colorBorder};
+`;
+
+const exportOverlayStyle = (theme: SupersetTheme) => css`
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: ${theme.sizeUnit * 4}px;
+  background-color: rgba(255, 255, 255, 0.75);
+  cursor: progress;
+
+  .export-overlay-message {
+    color: ${theme.colorText};
+    font-size: ${theme.fontSizeLG}px;
+    font-weight: ${theme.fontWeightStrong};
+    text-align: center;
+  }
+
+  .export-overlay-sub {
+    color: ${theme.colorTextSecondary};
+    font-size: ${theme.fontSize}px;
+    text-align: center;
+    max-width: 480px;
+  }
 `;
 
 const editButtonStyle = (theme: SupersetTheme) => css`
@@ -665,6 +696,76 @@ const Header = (): JSX.Element => {
     ],
   );
 
+  const store = useStore<HeaderRootState>();
+  const isExporting = useSelector<HeaderRootState, boolean>(state =>
+    Boolean(state.dashboardState?.isExporting),
+  );
+
+  const handleExportPdf = useCallback(async () => {
+    const EXPORT_TIMEOUT_MS = 60_000;
+    const POLL_INTERVAL_MS = 250;
+    // Minimum delay after flipping isExporting before we start trusting
+    // chartStatus values. Charts that were previously rendered and then
+    // unmounted by virtualization keep chartStatus='rendered' in Redux even
+    // though their DOM has to be re-painted from scratch on remount; without
+    // this wait the polling exits immediately and html2canvas captures
+    // half-painted charts.
+    const WARMUP_DELAY_MS = 2500;
+    // chartStatus='rendered' is dispatched as soon as setOption returns on
+    // ECharts (and equivalents on AG Grid / MapBox / etc.), but the chart
+    // continues animating for ~1s. Wait after polling so the visual paint
+    // is fully settled before html2canvas snapshots the DOM.
+    const SETTLE_DELAY_MS = 1500;
+    const TERMINAL_STATUSES = new Set(['rendered', 'failed', 'stopped']);
+    const expectedChartCount = chartIds.length;
+
+    dispatch(setIsExporting(true));
+    try {
+      // give React + chart libs (ECharts, AG Grid…) time to remount and
+      // initially paint virtualization-unmounted charts before we believe
+      // any 'rendered' status flag
+      await new Promise(resolve => setTimeout(resolve, WARMUP_DELAY_MS));
+
+      const start = Date.now();
+      // wait until every chart reaches a terminal status (rendered/failed/stopped),
+      // so html2canvas captures fully painted DOM rather than placeholders
+      while (Date.now() - start < EXPORT_TIMEOUT_MS) {
+        const state = store.getState();
+        const charts = Object.values(state.charts ?? {});
+        if (charts.length === 0 && expectedChartCount === 0) break;
+        // make sure every chart in the dashboard layout has registered in
+        // Redux before we assess overall status
+        if (charts.length < expectedChartCount) {
+          // eslint-disable-next-line no-await-in-loop
+          await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL_MS));
+          continue;
+        }
+        const pending = charts.filter(
+          chart => !TERMINAL_STATUSES.has(chart.chartStatus ?? ''),
+        );
+        if (pending.length === 0) break;
+        // eslint-disable-next-line no-await-in-loop
+        await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL_MS));
+      }
+      // give charts time to finish their entry animation (ECharts, etc.)
+      // before html2canvas snapshots the DOM
+      await new Promise(resolve => setTimeout(resolve, SETTLE_DELAY_MS));
+      const finalState = store.getState();
+      await exportDashboardBundle({
+        selector: '.dashboard',
+        dashboardTitle,
+        charts: finalState.charts,
+        slices: finalState.sliceEntities?.slices ?? {},
+      });
+    } catch (error) {
+      boundActionCreators.addDangerToast(
+        t('Sorry, something went wrong. Try again later.'),
+      );
+    } finally {
+      dispatch(setIsExporting(false));
+    }
+  }, [dispatch, store, dashboardTitle, boundActionCreators, chartIds]);
+
   const rightPanelAdditionalItems = useMemo(
     () => (
       <div className="button-container">
@@ -749,6 +850,16 @@ const Header = (): JSX.Element => {
         ) : (
           <div css={actionButtonsStyle}>
             {NavExtension && <NavExtension />}
+            <Button
+              buttonStyle="primary"
+              onClick={handleExportPdf}
+              disabled={isExporting}
+              data-test="export-dashboard-button"
+              className="action-button"
+              aria-label={t('Exporter')}
+            >
+              {t('Exporter')}
+            </Button>
             {userCanEdit && (
               <Button
                 buttonStyle="secondary"
@@ -775,7 +886,9 @@ const Header = (): JSX.Element => {
       handleCtrlY,
       handleCtrlZ,
       handleEnterEditMode,
+      handleExportPdf,
       hasUnsavedChanges,
+      isExporting,
       overwriteDashboard,
       redoLength,
       undoLength,
@@ -827,6 +940,25 @@ const Header = (): JSX.Element => {
       data-test-id={dashboardInfo.id}
       className="dashboard-header-container"
     >
+      {isExporting && (
+        <div
+          css={exportOverlayStyle}
+          role="alertdialog"
+          aria-modal="true"
+          aria-label={t('Export en cours')}
+          data-test="export-loading-overlay"
+        >
+          <Loading position="inline-centered" size="l" />
+          <div className="export-overlay-message">
+            {t('Export en cours…')}
+          </div>
+          <div className="export-overlay-sub">
+            {t(
+              "Veuillez patienter pendant l'export du tableau de bord.",
+            )}
+          </div>
+        </div>
+      )}
       <PageHeaderWithActions
         editableTitleProps={editableTitleProps}
         certificatiedBadgeProps={certifiedBadgeProps}

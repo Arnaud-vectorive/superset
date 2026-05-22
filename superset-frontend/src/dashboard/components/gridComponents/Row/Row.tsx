@@ -28,8 +28,10 @@ import {
   RefObject,
 } from 'react';
 import cx from 'classnames';
+import { useSelector } from 'react-redux';
 import { t } from '@apache-superset/core/translation';
 import { FeatureFlag, isFeatureEnabled, JsonObject } from '@superset-ui/core';
+import { RootState } from 'src/dashboard/types';
 import { css, styled, SupersetTheme } from '@apache-superset/core/theme';
 import { Icons } from '@superset-ui/core/components';
 import {
@@ -156,6 +158,10 @@ const Row = memo((props: RowProps) => {
 
   const [isFocused, setIsFocused] = useState(false);
   const [isInView, setIsInView] = useState(false);
+  const isExporting = useSelector<RootState, boolean>(state =>
+    Boolean(state.dashboardState?.isExporting),
+  );
+  const effectiveIsInView = isInView || isExporting;
   const [hoverMenuHovered, setHoverMenuHovered] = useState(false);
   const [containerHeight, setContainerHeight] = useState<number | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -359,7 +365,7 @@ const Row = memo((props: RowProps) => {
                   onResizeStop={onResizeStop}
                   isComponentVisible={isComponentVisible}
                   onChangeTab={onChangeTab}
-                  isInView={isInView}
+                  isInView={effectiveIsInView}
                 />
                 {editMode && (
                   <Droppable
@@ -410,7 +416,7 @@ const Row = memo((props: RowProps) => {
       hoverMenuHovered,
       isComponentVisible,
       isFocused,
-      isInView,
+      effectiveIsInView,
       onChangeTab,
       onResize,
       onResizeStart,

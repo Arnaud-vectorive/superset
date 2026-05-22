@@ -25,6 +25,7 @@ import {
   REMOVE_SLICE,
   SET_COLOR_SCHEME,
   SET_EDIT_MODE,
+  SET_IS_EXPORTING,
   SET_MAX_UNDO_HISTORY_EXCEEDED,
   SET_UNSAVED_CHANGES,
   SHOW_BUILDER_PANE,
@@ -80,6 +81,7 @@ interface DashboardStateShape {
   isStarred?: boolean;
   isPublished?: boolean;
   editMode?: boolean;
+  isExporting?: boolean;
   maxUndoHistoryExceeded?: boolean;
   colorScheme?: string;
   updatedColorScheme?: boolean;
@@ -214,6 +216,12 @@ export default function dashboardStateReducer(
       return {
         ...state,
         editMode: action.editMode,
+      };
+    },
+    [SET_IS_EXPORTING](): DashboardStateShape {
+      return {
+        ...state,
+        isExporting: action.isExporting,
       };
     },
     [SET_MAX_UNDO_HISTORY_EXCEEDED](): DashboardStateShape {
