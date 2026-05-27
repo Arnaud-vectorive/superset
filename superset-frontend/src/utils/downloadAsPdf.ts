@@ -56,6 +56,26 @@ export default function downloadAsPdf(
       );
     }
 
+    const overrideStyle = document.createElement('style');
+    overrideStyle.setAttribute('data-pdf-export-override', '');
+    overrideStyle.innerHTML = `
+      * {
+        scrollbar-width: none !important;
+        -ms-overflow-style: none !important;
+      }
+      *::-webkit-scrollbar {
+        display: none !important;
+        width: 0 !important;
+        height: 0 !important;
+      }
+    `;
+    document.head.appendChild(overrideStyle);
+    const cleanup = () => {
+      if (overrideStyle.parentNode) {
+        overrideStyle.parentNode.removeChild(overrideStyle);
+      }
+    };
+
     const options = {
       margin: 10,
       filename: `${generateFileStem(description)}.pdf`,
@@ -65,9 +85,10 @@ export default function downloadAsPdf(
     };
     return domToPdf(elementToPrint, options)
       .then(() => {
-        // nothing to be done
+        cleanup();
       })
       .catch((e: Error) => {
+        cleanup();
         logging.error('PDF generation failed', e);
       });
   };

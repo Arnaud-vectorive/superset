@@ -92,6 +92,7 @@ export type DashboardLayoutState = { present: DashboardLayout };
 export type DashboardState = {
   preselectNativeFilters?: JsonObject;
   editMode: boolean;
+  isExporting?: boolean;
   isPublished: boolean;
   directPathToChild: string[];
   activeTabs: ActiveTabs;

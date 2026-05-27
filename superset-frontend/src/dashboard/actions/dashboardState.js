@@ -188,6 +188,11 @@ export function setEditMode(editMode) {
   return { type: SET_EDIT_MODE, editMode };
 }
 
+export const SET_IS_EXPORTING = 'SET_IS_EXPORTING';
+export function setIsExporting(isExporting) {
+  return { type: SET_IS_EXPORTING, isExporting };
+}
+
 export const ON_CHANGE = 'ON_CHANGE';
 export function onChange() {
   return { type: ON_CHANGE };

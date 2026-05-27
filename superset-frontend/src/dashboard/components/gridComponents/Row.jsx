@@ -27,6 +27,7 @@ import {
 } from 'react';
 import PropTypes from 'prop-types';
 import cx from 'classnames';
+import { useSelector } from 'react-redux';
 import {
   css,
   FAST_DEBOUNCE,
@@ -158,6 +159,10 @@ const Row = props => {
 
   const [isFocused, setIsFocused] = useState(false);
   const [isInView, setIsInView] = useState(false);
+  const isExporting = useSelector(state =>
+    Boolean(state.dashboardState?.isExporting),
+  );
+  const effectiveIsInView = isInView || isExporting;
   const [hoverMenuHovered, setHoverMenuHovered] = useState(false);
   const [containerHeight, setContainerHeight] = useState(null);
   const containerRef = useRef();
@@ -358,7 +363,7 @@ const Row = props => {
                   onResizeStop={onResizeStop}
                   isComponentVisible={isComponentVisible}
                   onChangeTab={onChangeTab}
-                  isInView={isInView}
+                  isInView={effectiveIsInView}
                 />
                 {editMode && (
                   <Droppable
@@ -407,7 +412,7 @@ const Row = props => {
       hoverMenuHovered,
       isComponentVisible,
       isFocused,
-      isInView,
+      effectiveIsInView,
       onChangeTab,
       onResize,
       onResizeStart,

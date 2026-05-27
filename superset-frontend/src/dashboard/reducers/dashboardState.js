@@ -24,6 +24,7 @@ import {
   REMOVE_SLICE,
   SET_COLOR_SCHEME,
   SET_EDIT_MODE,
+  SET_IS_EXPORTING,
   SET_MAX_UNDO_HISTORY_EXCEEDED,
   SET_UNSAVED_CHANGES,
   SHOW_BUILDER_PANE,
@@ -89,6 +90,12 @@ export default function dashboardStateReducer(state = {}, action) {
       return {
         ...state,
         editMode: action.editMode,
+      };
+    },
+    [SET_IS_EXPORTING]() {
+      return {
+        ...state,
+        isExporting: action.isExporting,
       };
     },
     [SET_MAX_UNDO_HISTORY_EXCEEDED]() {

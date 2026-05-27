@@ -154,6 +154,7 @@
     "jquery": "^3.7.1",
     "js-levenshtein": "^1.1.6",
     "js-yaml-loader": "^1.2.2",
+    "jszip": "^3.10.1",
     "json-bigint": "^1.0.0",
     "json-stringify-pretty-compact": "^2.0.0",
     "lodash": "^4.17.21",
