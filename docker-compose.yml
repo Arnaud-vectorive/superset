@@ -67,7 +67,7 @@ services:
         required: true
       - path: docker/.env-local # optional override
         required: false
-    image: postgres:15
+    image: postgres:17
     container_name: superset_db
     restart: unless-stopped
     ports:
@@ -181,6 +181,8 @@ services:
       - "127.0.0.1:9000:9000"  # exposing the dynamic webpack dev server
     container_name: superset_node
     command: ["/app/docker/docker-frontend.sh"]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     env_file:
       - path: docker/.env # default
         required: true
